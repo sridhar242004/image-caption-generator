@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Caption Generator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            padding: 2rem;
+        }
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        .card-header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            text-align: center;
+            padding: 2.5rem;
+            border-bottom: none;
+        }
+        .card-header h1 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .card-body {
+            padding: 2.5rem;
+        }
+        .upload-box {
+            border: 3px dashed #4ECDC4;
+            border-radius: 20px;
+            padding: 3rem;
+            text-align: center;
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background-color: rgba(78, 205, 196, 0.1);
+        }
+        .upload-box:hover {
+            border-color: #FF6B6B;
+            background-color: rgba(255, 107, 107, 0.1);
+            transform: translateY(-5px);
+        }
+        .upload-icon {
+            font-size: 4rem;
+            color: #4ECDC4;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .upload-box:hover .upload-icon {
+            color: #FF6B6B;
+            transform: scale(1.1);
+        }
+        .preview-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            margin-top: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        .preview-image:hover {
+            transform: scale(1.02);
+        }
+        .caption-box {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            padding: 2rem;
+            border-radius: 15px;
+            margin-top: 2rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .caption-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 80%);
+            transform: rotate(30deg);
+        }
+        .loading {
+            display: none;
+            margin: 2rem 0;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            padding: 1rem 2.5rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            border-radius: 50px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        .btn-outline-danger {
+            color: #FF6B6B;
+            border-color: #FF6B6B;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-radius: 50px;
+        }
+        .btn-outline-danger:hover {
+            background-color: #FF6B6B;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+        .alert {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            border-width: 0.25em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="card">
+            <div class="card-header">
+                <h1 class="mb-0">AI Image Caption Generator</h1>
+                <p class="text-light mb-0 mt-2">Transform your images into words with our cutting-edge AI</p>
+            </div>
+            <div class="card-body">
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Upload Form -->
+                <form action="{{ url_for('upload_image') }}" method="post" enctype="multipart/form-data" id="upload-form">
+                    <div class="upload-box" id="drop-zone">
+                        <label for="image" class="form-label mb-0">
+                            <div class="upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <h4>Upload Your Image</h4>
+                            <p class="text-muted">Drag and drop or click to select</p>
+                            <p class="text-muted small">Supported formats: JPG, PNG, GIF</p>
+                        </label>
+                        <input type="file" class="form-control d-none" id="image" name="image" accept=".jpg,.jpeg,.png,.gif" required>
+                    </div>
+                    
+                    <!-- Image Preview -->
+                    <div id="image-preview" class="text-center" style="display: none;">
+                        <img id="preview" class="preview-image" src="#" alt="Preview">
+                        <button type="button" class="btn btn-outline-danger mt-4" id="remove-image">
+                            <i class="fas fa-trash-alt me-2"></i>Remove Image
+                        </button>
+                    </div>
+                    
+                    <div class="text-center mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-magic me-2"></i>Generate Caption
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Loading Spinner -->
+                <div class="loading text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">AI is working its magic...</p>
+                </div>
+                
+                <!-- Results -->
+                {% if prediction %}
+                    <div class="results mt-5">
+                        <div class="text-center">
+                            <img src="{{ url_for('static', filename=img_path) }}" alt="Uploaded Image" class="preview-image mb-4">
+                        </div>
+                        <div class="caption-box">
+                            <h4 class="mb-3">AI-Generated Caption:</h4>
+                            <p class="lead mb-0">{{ prediction }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // File upload handling
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('image');
+        const imagePreview = document.getElementById('image-preview');
+        const preview = document.getElementById('preview');
+        const removeButton = document.getElementById('remove-image');
+        const uploadForm = document.getElementById('upload-form');
+
+        // Drag and drop functionality
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#FF6B6B';
+            dropZone.style.backgroundColor = 'rgba(255, 107, 107, 0.1)';
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#4ECDC4';
+            dropZone.style.backgroundColor = 'rgba(78, 205, 196, 0.1)';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#4ECDC4';
+            dropZone.style.backgroundColor = 'rgba(78, 205, 196, 0.1)';
+            
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        // Remove image button
+        removeButton.addEventListener('click', () => {
+            fileInput.value = '';
+            imagePreview.style.display = 'none';
+            dropZone.style.display = 'block';
+        });
+
+        // Form submission
+        uploadForm.addEventListener('submit', () => {
+            document.querySelector('.loading').style.display = 'block';
+        });
+
+        // Handle file selection
+        function handleFileSelect(file) {
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    preview.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                    dropZone.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
+</body>
+</html>
